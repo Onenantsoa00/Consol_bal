@@ -5,16 +5,8 @@ const excelController = require("../controllers/excel.controller");
 
 const router = express.Router();
 
-// Configuration multer : stockage temporaire
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "../../uploads"));
-  },
-  filename: (req, file, cb) => {
-    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, `${unique}-${file.originalname}`);
-  },
-});
+// ✅ Stockage EN MÉMOIRE : plus aucun fichier temporaire, plus aucun ENOENT possible
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowed = [
@@ -39,17 +31,14 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20 Mo
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 Mo par fichier
 });
 
-// POST /api/excel/consolidate
 router.post(
   "/consolidate",
-  upload.array("files", 20),
+  upload.array("files", 30),
   excelController.consolidate,
 );
-
-// POST /api/excel/export
 router.post("/export", excelController.exportExcel);
 
 module.exports = router;
