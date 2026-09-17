@@ -3,7 +3,7 @@
     <header>
       <h1>📊 Consolidation Balance</h1>
       <p class="subtitle">
-        Importez plusieurs balances générales Excel pour les consolider par
+        Importez jusqu'à 30 balances générales Excel pour les consolider par
         classe de comptes
       </p>
     </header>
@@ -14,7 +14,7 @@
       <div class="actions">
         <button
           class="primary"
-          :disabled="!files.length || loading"
+          :disabled="!files.length || loading || files.length > 30"
           @click="handleConsolidate"
         >
           {{ loading ? "⏳ Traitement..." : "🔀 Consolider" }}
@@ -64,6 +64,14 @@ const successMsg = ref("");
 async function handleConsolidate() {
   error.value = "";
   successMsg.value = "";
+
+  if (loading.value) return;
+
+  if (files.value.length > 30) {
+    error.value = "Maximum 30 fichiers autorisés.";
+    return;
+  }
+
   loading.value = true;
 
   try {
@@ -76,7 +84,7 @@ async function handleConsolidate() {
       classes: result.classes,
       details: result.details,
     };
-    successMsg.value = `${result.totalAccounts} compte(s) consolidé(s) — ${result.totalRows} ligne(s) générée(s).`;
+    successMsg.value = `${result.totalAccounts} compte(s) unique(s) consolidé(s) — ${result.totalRows} ligne(s) générée(s).`;
   } catch (err) {
     error.value =
       err.response?.data?.error ||
@@ -98,7 +106,7 @@ async function handleExport() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `consolidation-balance-${Date.now()}.xlsx`;
+    a.download = `Consolidation Balance-${Date.now()}.xlsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

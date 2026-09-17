@@ -23,39 +23,31 @@
       <table>
         <thead>
           <tr>
-            <th rowspan="2" class="col-compte">N°COMPTE</th>
-            <th colspan="2">BALANCE D'ENTREE</th>
-            <th colspan="2">OPERATION GESTION</th>
-            <th colspan="2">TOTAL GENERAL</th>
-            <th colspan="2">SOLDE</th>
-            <th colspan="2">OPERATION FIN GESTION</th>
-            <th colspan="2">BALANCE DE SORTIE</th>
+            <th rowspan="2" class="col-compte header-cell">N°COMPTE</th>
+            <th colspan="2" class="header-cell">BALANCE D'ENTREE</th>
+            <th colspan="2" class="header-cell">OPERATION GESTION</th>
+            <th colspan="2" class="header-cell">TOTAL GENERAL</th>
+            <th colspan="2" class="header-cell">SOLDE</th>
+            <th colspan="2" class="header-cell">OPERATION FIN GESTION</th>
+            <th colspan="2" class="header-cell">BALANCE DE SORTIE</th>
           </tr>
           <tr>
-            <th>DEBIT</th>
-            <th>CREDIT</th>
-            <th>DEBIT</th>
-            <th>CREDIT</th>
-            <th>DEBIT</th>
-            <th>CREDIT</th>
-            <th>DEBIT</th>
-            <th>CREDIT</th>
-            <th>DEBIT</th>
-            <th>CREDIT</th>
-            <th>DEBIT</th>
-            <th>CREDIT</th>
+            <th class="header-cell">DEBIT</th>
+            <th class="header-cell">CREDIT</th>
+            <th class="header-cell">DEBIT</th>
+            <th class="header-cell">CREDIT</th>
+            <th class="header-cell">DEBIT</th>
+            <th class="header-cell">CREDIT</th>
+            <th class="header-cell">DEBIT</th>
+            <th class="header-cell">CREDIT</th>
+            <th class="header-cell">DEBIT</th>
+            <th class="header-cell">CREDIT</th>
+            <th class="header-cell">DEBIT</th>
+            <th class="header-cell">CREDIT</th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="(row, i) in paginatedRows"
-            :key="i"
-            :class="{
-              'row-account': row.type === 'account',
-              'row-total-class': row.type === 'total-class',
-              'row-grand-total': row.type === 'grand-total',
-            }"
-          >
+          <tr v-for="(row, i) in paginatedRows" :key="i" :class="rowClass(row)">
             <td class="col-compte">{{ row.compte }}</td>
             <td>{{ fmt(row.balance_entree_debit) }}</td>
             <td>{{ fmt(row.balance_entree_credit) }}</td>
@@ -116,15 +108,27 @@ const paginatedRows = computed(() =>
   props.rows.slice(startIndex.value, endIndex.value),
 );
 
+function rowClass(row) {
+  if (row.type === "grand-total") return "row-grand-total";
+  if (row.type === "total-class") return "row-total-class";
+  return "row-account";
+}
+
+/**
+ * Règle 2 : cellule vide si null, undefined, '' OU 0.
+ * Sinon : format fr-FR, séparateur milliers = espace.
+ */
 function fmt(v) {
   if (v === null || v === undefined || v === "") return "";
   const n = Number(v);
   if (!Number.isFinite(n)) return String(v);
-  if (n === 0) return "";
-  return n.toLocaleString("fr-FR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  if (n === 0) return ""; // ✅ 0 → vide
+  return n
+    .toLocaleString("fr-FR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    .replace(/\u202f|\u00a0/g, " ");
 }
 </script>
 
@@ -183,10 +187,12 @@ td {
   text-align: right;
 }
 
-th {
+th,
+.header-cell {
   background: #e3f2fd;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
+  vertical-align: middle;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -198,7 +204,7 @@ thead tr:nth-child(2) th {
 
 .col-compte {
   text-align: left;
-  font-weight: 600;
+  font-weight: 700;
   background: #e3f2fd;
   position: sticky;
   left: 0;
@@ -207,30 +213,28 @@ thead tr:nth-child(2) th {
 
 tbody .col-compte {
   background: white;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .row-account .col-compte {
   background: white;
 }
 
-.row-total-class {
-  background: #fff9c4 !important;
-  font-weight: 700;
-}
-
+/* Total Cl. X → gris clair 4 */
+.row-total-class,
+.row-total-class td,
 .row-total-class .col-compte {
-  background: #fff9c4 !important;
-  color: #f57f17;
-}
-
-.row-grand-total {
-  background: #c8e6c9 !important;
+  background: #d9d9d9 !important;
   font-weight: 700;
+  color: #212121;
 }
 
+/* TOT. GEN. → gris clair 1 */
+.row-grand-total,
+.row-grand-total td,
 .row-grand-total .col-compte {
-  background: #c8e6c9 !important;
+  background: #f2f2f2 !important;
+  font-weight: 700;
   color: #1b5e20;
 }
 

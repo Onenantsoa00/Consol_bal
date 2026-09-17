@@ -13,15 +13,17 @@
         <div class="title">
           {{
             files.length
-              ? `${files.length} fichier(s) sélectionné(s)`
+              ? `${files.length} / 30 fichier(s) sélectionné(s)`
               : "Cliquez pour choisir des fichiers Excel"
           }}
         </div>
         <div class="subtitle">
-          Formats acceptés : .xlsx, .xls (balances générales)
+          Formats acceptés : .xlsx, .xls, .csv — Maximum 30 fichiers
         </div>
       </div>
     </label>
+
+    <div v-if="errorMsg" class="file-error">⚠️ {{ errorMsg }}</div>
 
     <ul v-if="files.length" class="file-list">
       <li v-for="(f, i) in files" :key="i">
@@ -33,6 +35,8 @@
 </template>
 
 <script setup>
+import { ref } from "vue";
+
 const props = defineProps({
   files: { type: Array, default: () => [] },
   disabled: { type: Boolean, default: false },
@@ -40,8 +44,19 @@ const props = defineProps({
 
 const emit = defineEmits(["update:files"]);
 
+const MAX_FILES = 30;
+const errorMsg = ref("");
+
 function onChange(event) {
+  errorMsg.value = "";
   const selected = Array.from(event.target.files || []);
+
+  if (selected.length > MAX_FILES) {
+    errorMsg.value = `Vous avez sélectionné ${selected.length} fichiers. Maximum ${MAX_FILES} autorisés.`;
+    emit("update:files", selected.slice(0, MAX_FILES));
+    return;
+  }
+
   emit("update:files", selected);
 }
 
@@ -99,6 +114,16 @@ function formatSize(bytes) {
   margin-top: 4px;
 }
 
+.file-error {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 6px;
+  font-size: 13px;
+  border-left: 4px solid #ffc107;
+}
+
 .file-list {
   list-style: none;
   padding: 0;
@@ -107,6 +132,8 @@ function formatSize(bytes) {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e0e0e0;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .file-list li {
