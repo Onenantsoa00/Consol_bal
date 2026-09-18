@@ -1,35 +1,30 @@
 @echo off
-chcp 65001 >nul
-setlocal EnableDelayedExpansion
+setlocal
 
 title Consolidation Balance
 
-:: ============================================================
-:: CHEMINS
-:: ============================================================
+REM ============================================================
+REM CONSOLIDATION BALANCE - DEMARRAGE
+REM ============================================================
 
 set "WINDOWS_DIR=%~dp0"
 set "PROJECT_DIR=%WINDOWS_DIR%.."
 set "BACKEND_DIR=%PROJECT_DIR%\excel-consolidator-backend"
 set "FRONTEND_DIR=%PROJECT_DIR%\excel-consolidator-frontend"
 
-set "BACKEND_LOG=%WINDOWS_DIR%backend.log"
-set "FRONTEND_LOG=%WINDOWS_DIR%frontend.log"
-
 echo.
 echo ============================================================
-echo       CONSOLIDATION BALANCE
+echo          CONSOLIDATION BALANCE
 echo ============================================================
 echo.
 
-:: ============================================================
-:: VERIFICATION DES DOSSIERS
-:: ============================================================
+REM ------------------------------------------------------------
+REM Verification des dossiers
+REM ------------------------------------------------------------
 
 if not exist "%BACKEND_DIR%\package.json" (
     echo [ERREUR] Backend introuvable.
     echo.
-    echo Dossier recherche :
     echo %BACKEND_DIR%
     echo.
     pause
@@ -39,218 +34,113 @@ if not exist "%BACKEND_DIR%\package.json" (
 if not exist "%FRONTEND_DIR%\package.json" (
     echo [ERREUR] Frontend introuvable.
     echo.
-    echo Dossier recherche :
     echo %FRONTEND_DIR%
     echo.
     pause
     exit /b 1
 )
 
-:: ============================================================
-:: VERIFICATION NODE.JS
-:: ============================================================
+REM ------------------------------------------------------------
+REM Verification de Node.js
+REM ------------------------------------------------------------
 
 where node >nul 2>nul
 
-if %ERRORLEVEL% NEQ 0 (
+if errorlevel 1 (
     echo [ERREUR] Node.js n'est pas installe.
     echo.
-    echo Lancez d'abord install.bat.
+    echo Lancez install.bat.
     echo.
     pause
     exit /b 1
 )
 
-for /f "tokens=*" %%v in ('node --version') do (
-    echo Node.js : %%v
-)
-
-echo.
-
-:: ============================================================
-:: VERIFICATION NPM
-:: ============================================================
-
-where npm >nul 2>nul
-
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERREUR] npm est introuvable.
-    echo.
-    pause
-    exit /b 1
-)
-
-:: ============================================================
-:: VERIFICATION NODE_MODULES
-:: ============================================================
+REM ------------------------------------------------------------
+REM Verification des dependances
+REM ------------------------------------------------------------
 
 if not exist "%BACKEND_DIR%\node_modules" (
-    echo [ERREUR] Dependances backend absentes.
+    echo [ERREUR] Les dependances du backend sont absentes.
     echo.
-    echo Lancez d'abord install.bat.
+    echo Lancez install.bat.
     echo.
     pause
     exit /b 1
 )
 
 if not exist "%FRONTEND_DIR%\node_modules" (
-    echo [ERREUR] Dependances frontend absentes.
+    echo [ERREUR] Les dependances du frontend sont absentes.
     echo.
-    echo Lancez d'abord install.bat.
+    echo Lancez install.bat.
     echo.
     pause
     exit /b 1
 )
 
-:: ============================================================
-:: BACKEND
-:: ============================================================
+REM ------------------------------------------------------------
+REM Verification des ports
+REM ------------------------------------------------------------
 
-echo ============================================================
-echo [1/2] Demarrage du backend
-echo ============================================================
-echo.
+echo Verification du backend...
 
-netstat -ano | findstr ":3000" | findstr "LISTENING" >nul 2>nul
+netstat -ano | findstr /R /C:":3000 .*LISTENING" >nul 2>nul
 
-if %ERRORLEVEL% EQU 0 (
-    echo Backend deja actif sur le port 3000.
+if not errorlevel 1 (
+    echo Backend deja demarre sur le port 3000.
 ) else (
-    echo Demarrage du serveur Node.js...
+    echo Demarrage du backend...
 
-    if exist "%BACKEND_LOG%" del /q "%BACKEND_LOG%" >nul 2>nul
-
-    start "Backend-Consol" /min /D "%BACKEND_DIR%" "%ComSpec%" /c "npm start > "%BACKEND_LOG%" 2>&1"
-
-    echo Attente du backend...
-
-    set "BACKEND_READY=0"
-
-    for /L %%i in (1,1,30) do (
-        timeout /t 1 /nobreak >nul
-
-        netstat -ano | findstr ":3000" | findstr "LISTENING" >nul 2>nul
-
-        if !ERRORLEVEL! EQU 0 (
-            set "BACKEND_READY=1"
-            goto BACKEND_READY
-        )
-
-        echo     Attente %%i/30...
-    )
-
-    :BACKEND_READY
-
-    if "!BACKEND_READY!"=="0" (
-        echo.
-        echo ============================================================
-        echo [ERREUR] Le backend n'a pas demarre.
-        echo ============================================================
-        echo.
-        echo Consultez le fichier :
-        echo %BACKEND_LOG%
-        echo.
-        if exist "%BACKEND_LOG%" (
-            echo ---------------- ERREUR BACKEND ----------------
-            type "%BACKEND_LOG%"
-            echo ------------------------------------------------
-        )
-        echo.
-        pause
-        exit /b 1
-    )
-
-    echo Backend demarre sur http://localhost:3000
+    start "Consolidation Balance - Backend" /min cmd /k "cd /d ""%BACKEND_DIR%"" && npm start"
 )
 
+REM ------------------------------------------------------------
+
 echo.
+echo Verification du frontend...
 
-:: ============================================================
-:: FRONTEND
-:: ============================================================
+netstat -ano | findstr /R /C:":5173 .*LISTENING" >nul 2>nul
 
-echo ============================================================
-echo [2/2] Demarrage du frontend
-echo ============================================================
-echo.
-
-netstat -ano | findstr ":5173" | findstr "LISTENING" >nul 2>nul
-
-if %ERRORLEVEL% EQU 0 (
-    echo Frontend deja actif sur le port 5173.
+if not errorlevel 1 (
+    echo Frontend deja demarre sur le port 5173.
 ) else (
-    echo Demarrage de Vite...
+    echo Demarrage du frontend...
 
-    if exist "%FRONTEND_LOG%" del /q "%FRONTEND_LOG%" >nul 2>nul
-
-    start "Frontend-Consol" /min /D "%FRONTEND_DIR%" "%ComSpec%" /c "npm run dev > "%FRONTEND_LOG%" 2>&1"
-
-    echo Attente du frontend...
-
-    set "FRONTEND_READY=0"
-
-    for /L %%i in (1,1,60) do (
-        timeout /t 1 /nobreak >nul
-
-        netstat -ano | findstr ":5173" | findstr "LISTENING" >nul 2>nul
-
-        if !ERRORLEVEL! EQU 0 (
-            set "FRONTEND_READY=1"
-            goto FRONTEND_READY
-        )
-
-        echo     Attente %%i/60...
-    )
-
-    :FRONTEND_READY
-
-    if "!FRONTEND_READY!"=="0" (
-        echo.
-        echo ============================================================
-        echo [ERREUR] Le frontend n'a pas demarre.
-        echo ============================================================
-        echo.
-        echo Consultez le fichier :
-        echo %FRONTEND_LOG%
-        echo.
-        if exist "%FRONTEND_LOG%" (
-            echo ---------------- ERREUR FRONTEND ----------------
-            type "%FRONTEND_LOG%"
-            echo -------------------------------------------------
-        )
-        echo.
-        pause
-        exit /b 1
-    )
-
-    echo Frontend demarre sur http://localhost:5173
+    start "Consolidation Balance - Frontend" /min cmd /k "cd /d ""%FRONTEND_DIR%"" && npm run dev"
 )
 
-:: ============================================================
-:: OUVERTURE DU NAVIGATEUR
-:: ============================================================
+REM ------------------------------------------------------------
+REM Attente du demarrage
+REM ------------------------------------------------------------
 
 echo.
-echo ============================================================
-echo       APPLICATION PRETE
-echo ============================================================
-echo.
-echo Backend  : http://localhost:3000/
-echo Frontend : http://localhost:5173/
-echo.
+echo Attente du demarrage de l'application...
 
-echo Ouverture du navigateur...
+timeout /t 8 /nobreak >nul
+
+REM ------------------------------------------------------------
+REM Ouverture du navigateur
+REM ------------------------------------------------------------
+
+echo.
+echo Ouverture de Consolidation Balance...
+echo.
 
 start "" "http://localhost:5173/"
 
 echo.
-echo Le navigateur devrait maintenant s'ouvrir.
+echo ============================================================
+echo          APPLICATION DEMARREE
+echo ============================================================
 echo.
-echo Pour arreter l'application :
-echo double-cliquez sur stop.bat
+echo Frontend : http://localhost:5173
+echo Backend  : http://localhost:3000
+echo.
+echo Vous pouvez fermer cette fenetre.
+echo.
+echo Pour arreter l'application, utilisez stop.bat.
 echo.
 
-timeout /t 5 /nobreak >nul
+timeout /t 3 /nobreak >nul
 
 endlocal
 exit /b 0
