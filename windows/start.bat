@@ -4,12 +4,6 @@ setlocal EnableDelayedExpansion
 
 title Consolidation Balance
 
-echo.
-echo ============================================================
-echo       DEMARRAGE DE CONSOLIDATION BALANCE
-echo ============================================================
-echo.
-
 :: ============================================================
 :: CHEMINS
 :: ============================================================
@@ -18,6 +12,39 @@ set "WINDOWS_DIR=%~dp0"
 set "PROJECT_DIR=%WINDOWS_DIR%.."
 set "BACKEND_DIR=%PROJECT_DIR%\excel-consolidator-backend"
 set "FRONTEND_DIR=%PROJECT_DIR%\excel-consolidator-frontend"
+
+set "BACKEND_LOG=%WINDOWS_DIR%backend.log"
+set "FRONTEND_LOG=%WINDOWS_DIR%frontend.log"
+
+echo.
+echo ============================================================
+echo       CONSOLIDATION BALANCE
+echo ============================================================
+echo.
+
+:: ============================================================
+:: VERIFICATION DES DOSSIERS
+:: ============================================================
+
+if not exist "%BACKEND_DIR%\package.json" (
+    echo [ERREUR] Backend introuvable.
+    echo.
+    echo Dossier recherche :
+    echo %BACKEND_DIR%
+    echo.
+    pause
+    exit /b 1
+)
+
+if not exist "%FRONTEND_DIR%\package.json" (
+    echo [ERREUR] Frontend introuvable.
+    echo.
+    echo Dossier recherche :
+    echo %FRONTEND_DIR%
+    echo.
+    pause
+    exit /b 1
+)
 
 :: ============================================================
 :: VERIFICATION NODE.JS
@@ -34,12 +61,31 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
+for /f "tokens=*" %%v in ('node --version') do (
+    echo Node.js : %%v
+)
+
+echo.
+
 :: ============================================================
-:: VERIFICATION DES DEPENDANCES
+:: VERIFICATION NPM
+:: ============================================================
+
+where npm >nul 2>nul
+
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERREUR] npm est introuvable.
+    echo.
+    pause
+    exit /b 1
+)
+
+:: ============================================================
+:: VERIFICATION NODE_MODULES
 :: ============================================================
 
 if not exist "%BACKEND_DIR%\node_modules" (
-    echo [ERREUR] Les dependances du backend ne sont pas installees.
+    echo [ERREUR] Dependances backend absentes.
     echo.
     echo Lancez d'abord install.bat.
     echo.
@@ -48,7 +94,7 @@ if not exist "%BACKEND_DIR%\node_modules" (
 )
 
 if not exist "%FRONTEND_DIR%\node_modules" (
-    echo [ERREUR] Les dependances du frontend ne sont pas installees.
+    echo [ERREUR] Dependances frontend absentes.
     echo.
     echo Lancez d'abord install.bat.
     echo.
@@ -57,21 +103,26 @@ if not exist "%FRONTEND_DIR%\node_modules" (
 )
 
 :: ============================================================
-:: BACKEND - PORT 3000
+:: BACKEND
 :: ============================================================
 
-echo Verification du backend...
+echo ============================================================
+echo [1/2] Demarrage du backend
+echo ============================================================
+echo.
 
 netstat -ano | findstr ":3000" | findstr "LISTENING" >nul 2>nul
 
 if %ERRORLEVEL% EQU 0 (
     echo Backend deja actif sur le port 3000.
 ) else (
-    echo Demarrage du backend...
+    echo Demarrage du serveur Node.js...
 
-    start "Backend-Consol" /min cmd /c "cd /d "%BACKEND_DIR%" && npm start"
+    if exist "%BACKEND_LOG%" del /q "%BACKEND_LOG%" >nul 2>nul
 
-    echo Attente du demarrage du backend...
+    start "Backend-Consol" /min /D "%BACKEND_DIR%" "%ComSpec%" /c "npm start > "%BACKEND_LOG%" 2>&1"
+
+    echo Attente du backend...
 
     set "BACKEND_READY=0"
 
@@ -82,45 +133,59 @@ if %ERRORLEVEL% EQU 0 (
 
         if !ERRORLEVEL! EQU 0 (
             set "BACKEND_READY=1"
-            goto BACKEND_OK
+            goto BACKEND_READY
         )
 
-        echo Attente... %%i/30
+        echo     Attente %%i/30...
     )
 
-    :BACKEND_OK
+    :BACKEND_READY
 
     if "!BACKEND_READY!"=="0" (
         echo.
-        echo [ERREUR] Le backend ne repond pas sur le port 3000.
+        echo ============================================================
+        echo [ERREUR] Le backend n'a pas demarre.
+        echo ============================================================
         echo.
-        echo Verifiez la fenetre "Backend-Consol".
+        echo Consultez le fichier :
+        echo %BACKEND_LOG%
+        echo.
+        if exist "%BACKEND_LOG%" (
+            echo ---------------- ERREUR BACKEND ----------------
+            type "%BACKEND_LOG%"
+            echo ------------------------------------------------
+        )
         echo.
         pause
         exit /b 1
     )
 
-    echo Backend demarre avec succes.
+    echo Backend demarre sur http://localhost:3000
 )
 
 echo.
 
 :: ============================================================
-:: FRONTEND - PORT 5173
+:: FRONTEND
 :: ============================================================
 
-echo Verification du frontend...
+echo ============================================================
+echo [2/2] Demarrage du frontend
+echo ============================================================
+echo.
 
 netstat -ano | findstr ":5173" | findstr "LISTENING" >nul 2>nul
 
 if %ERRORLEVEL% EQU 0 (
     echo Frontend deja actif sur le port 5173.
 ) else (
-    echo Demarrage du frontend...
+    echo Demarrage de Vite...
 
-    start "Frontend-Consol" /min cmd /c "cd /d "%FRONTEND_DIR%" && npm run dev"
+    if exist "%FRONTEND_LOG%" del /q "%FRONTEND_LOG%" >nul 2>nul
 
-    echo Attente du demarrage du frontend...
+    start "Frontend-Consol" /min /D "%FRONTEND_DIR%" "%ComSpec%" /c "npm run dev > "%FRONTEND_LOG%" 2>&1"
+
+    echo Attente du frontend...
 
     set "FRONTEND_READY=0"
 
@@ -131,25 +196,34 @@ if %ERRORLEVEL% EQU 0 (
 
         if !ERRORLEVEL! EQU 0 (
             set "FRONTEND_READY=1"
-            goto FRONTEND_OK
+            goto FRONTEND_READY
         )
 
-        echo Attente... %%i/60
+        echo     Attente %%i/60...
     )
 
-    :FRONTEND_OK
+    :FRONTEND_READY
 
     if "!FRONTEND_READY!"=="0" (
         echo.
-        echo [ERREUR] Le frontend ne repond pas sur le port 5173.
+        echo ============================================================
+        echo [ERREUR] Le frontend n'a pas demarre.
+        echo ============================================================
         echo.
-        echo Verifiez la fenetre "Frontend-Consol".
+        echo Consultez le fichier :
+        echo %FRONTEND_LOG%
+        echo.
+        if exist "%FRONTEND_LOG%" (
+            echo ---------------- ERREUR FRONTEND ----------------
+            type "%FRONTEND_LOG%"
+            echo -------------------------------------------------
+        )
         echo.
         pause
         exit /b 1
     )
 
-    echo Frontend demarre avec succes.
+    echo Frontend demarre sur http://localhost:5173
 )
 
 :: ============================================================
@@ -157,22 +231,23 @@ if %ERRORLEVEL% EQU 0 (
 :: ============================================================
 
 echo.
-echo Ouverture de l'application...
+echo ============================================================
+echo       APPLICATION PRETE
+echo ============================================================
+echo.
+echo Backend  : http://localhost:3000/
+echo Frontend : http://localhost:5173/
+echo.
+
+echo Ouverture du navigateur...
 
 start "" "http://localhost:5173/"
 
 echo.
-echo ============================================================
-echo       CONSOLIDATION BALANCE EST DEMARRE
-echo ============================================================
-echo.
-echo Frontend : http://localhost:5173/
-echo Backend  : http://localhost:3000/
-echo.
-echo Vous pouvez utiliser l'application.
+echo Le navigateur devrait maintenant s'ouvrir.
 echo.
 echo Pour arreter l'application :
-echo lancez windows\stop.bat
+echo double-cliquez sur stop.bat
 echo.
 
 timeout /t 5 /nobreak >nul
