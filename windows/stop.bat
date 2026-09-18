@@ -1,33 +1,55 @@
 @echo off
 chcp 65001 >nul
+
 title Arret - Consolidation Balance
 
+echo.
 echo ============================================================
-echo    ARRET DE L'APPLICATION CONSOLIDATION BALANCE
+echo       ARRET DE CONSOLIDATION BALANCE
 echo ============================================================
 echo.
 
-echo Arret du BACKEND...
+:: ============================================================
+:: ARRET DES FENETRES
+:: ============================================================
+
+echo Arret du backend...
+
 taskkill /FI "WindowTitle eq Backend-Consol*" /T /F >nul 2>nul
-if %ERRORLEVEL% EQU 0 (echo    Backend arrete.) else (echo    Backend non actif.)
 
-echo Arret du FRONTEND...
+echo Arret du frontend...
+
 taskkill /FI "WindowTitle eq Frontend-Consol*" /T /F >nul 2>nul
-if %ERRORLEVEL% EQU 0 (echo    Frontend arrete.) else (echo    Frontend non actif.)
+
+:: ============================================================
+:: LIBERATION DU PORT 3000
+:: ============================================================
 
 echo.
-echo Liberation des ports 3000 et 5173...
-for /f "tokens=5" %%a in ('netstat -aon ^| find ":3000" ^| find "LISTENING"') do (
+echo Verification du port 3000...
+
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":3000" ^| findstr "LISTENING"') do (
+    echo Arret du processus PID %%a...
     taskkill /F /PID %%a >nul 2>nul
 )
-for /f "tokens=5" %%a in ('netstat -aon ^| find ":5173" ^| find "LISTENING"') do (
+
+:: ============================================================
+:: LIBERATION DU PORT 5173
+:: ============================================================
+
+echo Verification du port 5173...
+
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":5173" ^| findstr "LISTENING"') do (
+    echo Arret du processus PID %%a...
     taskkill /F /PID %%a >nul 2>nul
 )
 
 echo.
 echo ============================================================
-echo    APPLICATION ARRETEE
+echo       APPLICATION ARRETEE
 echo ============================================================
 echo.
+
 timeout /t 3 /nobreak >nul
+
 exit /b 0
